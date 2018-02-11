@@ -4,7 +4,7 @@ A parser for parsing the next JSON value in a provided string. In contrast with 
 to have extraneous characters following the JSON value. Or to put it differently: only as much valid JSON is parsed
 as is possible.
 
-```
+```Javascript
 	var parseNextJSONValue = require("parse-next-json-value");
 
 	// Parse a string containing a number and a literal
@@ -32,7 +32,7 @@ a high surrogate must follow. Otherwise the parser will return the error code (s
 
 In case a valid JSON value is present the result of the invocation of `parseNextJSONValue` has the following structure:
 
-```
+```Javascript
 	{
 		value: <value>,    // The JSON value parsed
 		index: <index>     // The index inside the string where parsing stopped (further parsing failed)
@@ -41,7 +41,7 @@ In case a valid JSON value is present the result of the invocation of `parseNext
 
 In case of an invalid JSON value, the following structure is the result:
 
-```
+```Javascript
 	{
 		value: undefined,
 		index: <index>,           // The index inside the string where parsing failed
