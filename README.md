@@ -7,13 +7,14 @@ as is possible.
 ```
 	var parseNextJSONValue = require("parse-next-json-value");
 
-	// Parse a string containing a number and a literal (JSON.parse() throws an error on this string)
+	// Parse a string containing a number and a literal
+	// JSON.parse() throws an error on this string
 	var parseResult = parseNextJSONValue("12.34, true");
-	console.log(parseResult);	// { value: 12.34, index: 5 } number is (first) valid JSON value
+	console.log(parseResult);	// { value: 12.34, index: 5 }
 
 	// Parse a string containing an array with a number and a literal
 	parseResult = parseNextJSONValue("[ 12.34, true ]");
-	console.log(parseResult);	// { value: [ 12.34, true ], index: 15 } array is parsed
+	console.log(parseResult);	// { value: [ 12.34, true ], index: 15 }
 ```
 
 Check the resulting field `index` to see which part was parsed correctly.
@@ -24,7 +25,7 @@ The parser uses a state machine to keep track of the parsing process. No regular
 
 The JSON specification is followed very strictly. This means that for example `"00"` will be parsed for only the
 first character (result is `{ value: 0, index: 1 }`) . The second zero is not parsed, since the JSON specification does not
-allow two consequtive zero's at the start of a number.
+allow two consecutive zero's at the start of a number.
 
 Also Unicode surrogates are checked for correctness. This means that if a low surrogate character is found,
 a high surrogate must follow. Otherwise the parser will return the error code (string) `"MISSING_HIGH_SURROGATE"`.
