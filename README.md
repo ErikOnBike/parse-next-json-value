@@ -18,8 +18,12 @@ as is possible.
 
 Check the resulting field `index` to see which part was parsed correctly.
 
+The `parseNextJSONValue` function can be called with an additional parameter `from` to specify from which position the parsing should start. This can be useful for repeatedly parsing the next JSON value in a (comma separated) list of JSON values without having to slice the string to be parsed.
+
+The parser uses a state machine to keep track of the parsing process. No regular expressions or calls to `eval` are used to parse the string.
+
 The JSON specification is followed very strictly. This means that for example `"00"` will be parsed for only the
-first character (and `index` will be `1`) . The second zero is not parsed, since the JSON specification does not
+first character (result is `{ value: 0, index: 1 }`) . The second zero is not parsed, since the JSON specification does not
 allow two consequtive zero's at the start of a number.
 
 Also Unicode surrogates are checked for correctness. This means that if a low surrogate character is found,
