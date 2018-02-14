@@ -576,11 +576,11 @@ module.exports = (function JSONParser() {
 	function isHighSurrogate(charCode) {
 		return charCode >= 0xdc00 && charCode <= 0xdfff;
 	}
-	function newContext(string, from) {
+	function newContext(string, index) {
 		return {
 			valueStack: [],
 			string: string,
-			from: from || 0,
+			index: index || 0,
 			length: string.length
 		};
 	}
@@ -620,42 +620,42 @@ module.exports = (function JSONParser() {
 		});
 	}
 	function getCharCode(context) {
-		return context.string.charCodeAt(context.from);
+		return context.string.charCodeAt(context.index);
 	}
 	function skipCharacter(context) {
-		context.from++;
+		context.index++;
 	}
 	function skipString(string, context) {
 		var length = string.length;
-		if(context.string.slice(context.from, context.from + length) === string) {
-			context.from += length;
+		if(context.string.slice(context.index, context.index + length) === string) {
+			context.index += length;
 			return true;
 		}
 		return false;
 	}
 	function skipHexString(context) {
-		var hexString = context.string.slice(context.from, context.from + HEX_STRING_LENGTH);
+		var hexString = context.string.slice(context.index, context.index + HEX_STRING_LENGTH);
 		for(var i = 0; i < HEX_STRING_LENGTH; i++) {
 			if(!isHexDigit(hexString.charCodeAt(i))) {
 				return "";
 			}
-			context.from++;
+			context.index++;
 		}
 		return hexString;
 	}
 	function skipUnicodeHexString(context) {
-		if(context.string.charCodeAt(context.from) === CHARACTERS.ESCAPE) {
-			context.from++;
-			if(context.string.charCodeAt(context.from) === CHARACTERS.LOWER_U) {
-				context.from++;
+		if(context.string.charCodeAt(context.index) === CHARACTERS.ESCAPE) {
+			context.index++;
+			if(context.string.charCodeAt(context.index) === CHARACTERS.LOWER_U) {
+				context.index++;
 				return skipHexString(context);
 			}
 		}
 		return "";
 	}
 	function skipWhitespace(context) {
-		while(context.from < context.length && isWhitespace(getCharCode(context))) {
-			context.from++;
+		while(context.index < context.length && isWhitespace(getCharCode(context))) {
+			context.index++;
 		}
 	}
 	function parseJSON(context) {
@@ -674,7 +674,6 @@ module.exports = (function JSONParser() {
 
 			// If found, go to next state and perform state processing
 			if(nextStateName) {
-				//console.log("Going to state: " + nextStateName);
 				state = states[nextStateName];
 				if(state.skipWhitespace) {
 					skipWhitespace(context);
@@ -682,18 +681,16 @@ module.exports = (function JSONParser() {
 				if(state.process) {
 					var result = state.process(context);
 					if(result !== true) {
-						return { value: undefined, index: context.from, errorCode: result };
+						return { value: undefined, index: context.index, errorCode: result };
 					}
 				}
 			} else {
-				//console.log("Failed parse [" + context.string + "]. Remaining: " + context.string.slice(context.from));
-				return { value: undefined, index: context.from, errorCode: state.errorCode };
+				return { value: undefined, index: context.index, errorCode: state.errorCode };
 			}
 		}
 
-		//console.log("Final!");
 		var value = context.valueStack.pop();
-		return { value: value, index: context.from };
+		return { value: value, index: context.index };
 	}
 	function parseNextJSONValue(string, from) {
 		return parseJSON(newContext(string, from));
