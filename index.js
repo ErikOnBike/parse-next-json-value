@@ -1,45 +1,45 @@
-module.exports = (function JSONParser() {
+module.exports = (function() {
 
+	// Constants
 	var HEX_STRING_LENGTH = 4;
+	var
+		CHARACTER_SPACE = 0x20,
+		CHARACTER_BACKSPACE = 0x08,
+		CHARACTER_TAB = 0x09,
+		CHARACTER_CARRIAGE_RETURN = 0x0d,
+		CHARACTER_LINE_FEED = 0x0a,
+		CHARACTER_FORM_FEED = 0x0c,
+		CHARACTER_DOUBLE_QUOTE = 0x22,
+		CHARACTER_COMMA = 0x2c,
+		CHARACTER_COLON = 0x3a,
+		CHARACTER_CURLY_BRACE_OPEN = 0x7b,
+		CHARACTER_CURLY_BRACE_CLOSE = 0x7d,
+		CHARACTER_SQUARE_BRACKET_OPEN = 0x5b,
+		CHARACTER_SQUARE_BRACKET_CLOSE = 0x5d,
+		CHARACTER_JSON_STRING_ESCAPE = 0x5c,	// \
+		CHARACTER_SOLIDUS = 0x2f,
+		CHARACTER_REVERSE_SOLIDUS = 0x5c,
+		CHARACTER_MINUS = 0x2d,
+		CHARACTER_PLUS = 0x2b,
+		CHARACTER_ZERO = 0x30,
+		CHARACTER_ONE = 0x31,
+		CHARACTER_NINE = 0x39,
+		CHARACTER_POINT = 0x2e,
+		CHARACTER_UPPER_A = 0x41,
+		CHARACTER_UPPER_E = 0x45,
+		CHARACTER_UPPER_F = 0x46,
+		CHARACTER_LOWER_A = 0x61,
+		CHARACTER_LOWER_B = 0x62,
+		CHARACTER_LOWER_E = 0x65,
+		CHARACTER_LOWER_F = 0x66,
+		CHARACTER_LOWER_N = 0x6e,
+		CHARACTER_LOWER_R = 0x72,
+		CHARACTER_LOWER_T = 0x74,
+		CHARACTER_LOWER_U = 0x75
+	;
 
-	var CHARACTERS = {
-		SPACE: 0x20,
-		BACKSPACE: 0x08,
-		TAB: 0x09,
-		CARRIAGE_RETURN: 0x0d,
-		LINE_FEED: 0x0a,
-		FORM_FEED: 0x0c,
-		DOUBLE_QUOTE: 0x22,
-		COMMA: 0x2c,
-		COLON: 0x3a,
-		CURLY_BRACE_OPEN: 0x7b,
-		CURLY_BRACE_CLOSE: 0x7d,
-		SQUARE_BRACKET_OPEN: 0x5b,
-		SQUARE_BRACKET_CLOSE: 0x5d,
-		ESCAPE: 0x5c,
-		SOLIDUS: 0x2f,
-		REVERSE_SOLIDUS: 0x5c,
-		MINUS: 0x2d,
-		PLUS: 0x2b,
-		ZERO: 0x30,
-		ONE: 0x31,
-		NINE: 0x39,
-		POINT: 0x2e,
-		UPPER_A: 0x41,
-		UPPER_E: 0x45,
-		UPPER_F: 0x46,
-		LOWER_A: 0x61,
-		LOWER_B: 0x62,
-		LOWER_E: 0x65,
-		LOWER_F: 0x66,
-		LOWER_N: 0x6e,
-		LOWER_R: 0x72,
-		LOWER_T: 0x74,
-		LOWER_U: 0x75
-
-	};
-
-	var states = {
+	// JSON states description
+	var JSON_STATES = {
 		"start": {
 			acceptStates: [
 				function() {
@@ -50,49 +50,49 @@ module.exports = (function JSONParser() {
 		"value": {
 			skipWhitespace: true,
 			acceptStates: [
-				function(charCode, context) {
-					if(charCode === CHARACTERS.CURLY_BRACE_OPEN) {
-						skipCharacter(context);
+				function(charCode, parser) {
+					if(charCode === CHARACTER_CURLY_BRACE_OPEN) {
+						parser.skipCharacter();
 						return "begin-object";
 					}
 				},
-				function(charCode, context) {
-					if(charCode === CHARACTERS.SQUARE_BRACKET_OPEN) {
-						skipCharacter(context);
+				function(charCode, parser) {
+					if(charCode === CHARACTER_SQUARE_BRACKET_OPEN) {
+						parser.skipCharacter();
 						return "begin-array";
 					}
 				},
-				function(charCode, context) {
-					if(charCode === CHARACTERS.DOUBLE_QUOTE) {
-						skipCharacter(context);
+				function(charCode, parser) {
+					if(charCode === CHARACTER_DOUBLE_QUOTE) {
+						parser.skipCharacter();
 						return "begin-string";
 					}
 				},
 				function(charCode) {
-					if(charCode === CHARACTERS.MINUS || isDigit(charCode)) {
+					if(charCode === CHARACTER_MINUS || Parser.isDigit(charCode)) {
 						return "begin-number";
 					}
 				},
-				function(charCode, context) {
-					if(charCode === CHARACTERS.LOWER_T) {
-						if(skipString("true", context)) {
-							setValue(true, context);
+				function(charCode, parser) {
+					if(charCode === CHARACTER_LOWER_T) {
+						if(parser.skipString("true")) {
+							parser.setValue(true);
 							return "end-literal";
 						}
 					}
 				},
-				function(charCode, context) {
-					if(charCode === CHARACTERS.LOWER_F) {
-						if(skipString("false", context)) {
-							setValue(false, context);
+				function(charCode, parser) {
+					if(charCode === CHARACTER_LOWER_F) {
+						if(parser.skipString("false")) {
+							parser.setValue(false);
 							return "end-literal";
 						}
 					}
 				},
-				function(charCode, context) {
-					if(charCode === CHARACTERS.LOWER_N) {
-						if(skipString("null", context)) {
-							setValue(null, context);
+				function(charCode, parser) {
+					if(charCode === CHARACTER_LOWER_N) {
+						if(parser.skipString("null")) {
+							parser.setValue(null);
 							return "end-literal";
 						}
 					}
@@ -102,8 +102,8 @@ module.exports = (function JSONParser() {
 		},
 		"begin-object": {
 			skipWhitespace: true,
-			process: function(context) {
-				setValue({}, context);
+			process: function(parser) {
+				parser.setValue({});
 				return true;
 			},
 			acceptStates: [
@@ -119,14 +119,14 @@ module.exports = (function JSONParser() {
 		"member": {
 			skipWhitespace: true,
 			acceptStates: [
-				function(charCode, context) {
-					if(charCode === CHARACTERS.CURLY_BRACE_CLOSE) {
-						skipCharacter(context);
+				function(charCode, parser) {
+					if(charCode === CHARACTER_CURLY_BRACE_CLOSE) {
+						parser.skipCharacter();
 						return "end-object";
 					}
 				},
 				function(charCode) {
-					if(charCode === CHARACTERS.DOUBLE_QUOTE) {
+					if(charCode === CHARACTER_DOUBLE_QUOTE) {
 						return "member-name";
 					}
 				}
@@ -134,21 +134,21 @@ module.exports = (function JSONParser() {
 			errorCode: "MISSING_MEMBER_NAME"
 		},
 		"member-name": {
-			process: function(context) {
+			process: function(parser) {
 
 				// A string should be present as member name
-				var parseResult = parseJSON(context);
+				var parseResult = parser.parse();
 				if(parseResult.value !== undefined) {
-					objectValueAddMember(parseResult.value, context);
+					parser.objectValueAddMember(parseResult.value);
 					return true;
 				}
 
 				return "INVALID_MEMBER_NAME";
 			},
 			acceptStates: [
-				function(charCode, context) {
-					if(charCode === CHARACTERS.COLON) {
-						skipCharacter(context);
+				function(charCode, parser) {
+					if(charCode === CHARACTER_COLON) {
+						parser.skipCharacter();
 						return "member-value";
 					}
 				}
@@ -156,27 +156,27 @@ module.exports = (function JSONParser() {
 			errorCode: "MISSING_COLON"
 		},
 		"member-value": {
-			process: function(context) {
+			process: function(parser) {
 
 				// A value should be present as member value
-				var parseResult = parseJSON(context);
+				var parseResult = parser.parse();
 				if(parseResult.value !== undefined) {
-					objectValueAssignMemberValue(parseResult.value, context);
+					parser.objectValueAssignMemberValue(parseResult.value);
 					return true;
 				}
 
 				return parseResult.errorCode;
 			},
 			acceptStates: [
-				function(charCode, context) {
-					if(charCode === CHARACTERS.CURLY_BRACE_CLOSE) {
-						skipCharacter(context);
+				function(charCode, parser) {
+					if(charCode === CHARACTER_CURLY_BRACE_CLOSE) {
+						parser.skipCharacter();
 						return "end-object";
 					}
 				},
-				function(charCode, context) {
-					if(charCode === CHARACTERS.COMMA) {
-						skipCharacter(context);
+				function(charCode, parser) {
+					if(charCode === CHARACTER_COMMA) {
+						parser.skipCharacter();
 						return "member";
 					}
 				}
@@ -185,14 +185,14 @@ module.exports = (function JSONParser() {
 		},
 		"begin-array": {
 			skipWhitespace: true,
-			process: function(context) {
-				setValue([], context);
+			process: function(parser) {
+				parser.setValue([]);
 				return true;
 			},
 			acceptStates: [
-				function(charCode, context) {
-					if(charCode === CHARACTERS.SQUARE_BRACKET_CLOSE) {
-						skipCharacter(context);
+				function(charCode, parser) {
+					if(charCode === CHARACTER_SQUARE_BRACKET_CLOSE) {
+						parser.skipCharacter();
 						return "end-array";
 					}
 				},
@@ -206,27 +206,27 @@ module.exports = (function JSONParser() {
 			isFinal: true
 		},
 		"array-element": {
-			process: function(context) {
+			process: function(parser) {
 
 				// A value should be present as array element
-				var parseResult = parseJSON(context);
+				var parseResult = parser.parse();
 				if(parseResult.value !== undefined) {
-					arrayValuePush(parseResult.value, context);
+					parser.arrayValuePush(parseResult.value);
 					return true;
 				}
 
 				return parseResult.errorCode;
 			},
 			acceptStates: [
-				function(charCode, context) {
-					if(charCode === CHARACTERS.SQUARE_BRACKET_CLOSE) {
-						skipCharacter(context);
+				function(charCode, parser) {
+					if(charCode === CHARACTER_SQUARE_BRACKET_CLOSE) {
+						parser.skipCharacter();
 						return "end-array";
 					}
 				},
-				function(charCode, context) {
-					if(charCode === CHARACTERS.COMMA) {
-						skipCharacter(context);
+				function(charCode, parser) {
+					if(charCode === CHARACTER_COMMA) {
+						parser.skipCharacter();
 						return "array-element";
 					}
 				}
@@ -234,8 +234,8 @@ module.exports = (function JSONParser() {
 			errorCode: "INVALID_ARRAY"
 		},
 		"begin-string": {
-			process: function(context) {
-				setValue("", context);
+			process: function(parser) {
+				parser.setValue("");
 				return true;
 			},
 			acceptStates: [
@@ -250,22 +250,22 @@ module.exports = (function JSONParser() {
 		},
 		"string-char": {
 			acceptStates: [
-				function(charCode, context) {
-					if(charCode === CHARACTERS.DOUBLE_QUOTE) {
-						skipCharacter(context);
+				function(charCode, parser) {
+					if(charCode === CHARACTER_DOUBLE_QUOTE) {
+						parser.skipCharacter();
 						return "end-string";
 					}
 				},
-				function(charCode, context) {
-					if(charCode === CHARACTERS.ESCAPE) {
-						skipCharacter(context);
+				function(charCode, parser) {
+					if(charCode === CHARACTER_JSON_STRING_ESCAPE) {
+						parser.skipCharacter();
 						return "string-escaped-char";
 					}
 				},
-				function(charCode, context) {
+				function(charCode, parser) {
 					if(charCode > 0x001f) {
-						skipCharacter(context);
-						stringValueAppendCharCode(charCode, context);
+						parser.skipCharacter();
+						parser.stringValueAppendCharCode(charCode);
 						return "string-char";
 					}
 				}
@@ -274,65 +274,65 @@ module.exports = (function JSONParser() {
 		},
 		"string-escaped-char": {
 			acceptStates: [
-				function(charCode, context) {
-					if(charCode === CHARACTERS.DOUBLE_QUOTE) {
-						skipCharacter(context);
-						stringValueAppendCharCode(charCode, context);
+				function(charCode, parser) {
+					if(charCode === CHARACTER_DOUBLE_QUOTE) {
+						parser.skipCharacter();
+						parser.stringValueAppendCharCode(charCode);
 						return "string-char";
 					}
 				},
-				function(charCode, context) {
-					if(charCode === CHARACTERS.REVERSE_SOLIDUS) {
-						skipCharacter(context);
-						stringValueAppendCharCode(charCode, context);
+				function(charCode, parser) {
+					if(charCode === CHARACTER_REVERSE_SOLIDUS) {
+						parser.skipCharacter();
+						parser.stringValueAppendCharCode(charCode);
 						return "string-char";
 					}
 				},
-				function(charCode, context) {
-					if(charCode === CHARACTERS.SOLIDUS) {
-						skipCharacter(context);
-						stringValueAppendCharCode(charCode, context);
+				function(charCode, parser) {
+					if(charCode === CHARACTER_SOLIDUS) {
+						parser.skipCharacter();
+						parser.stringValueAppendCharCode(charCode);
 						return "string-char";
 					}
 				},
-				function(charCode, context) {
-					if(charCode === CHARACTERS.LOWER_N) {
-						skipCharacter(context);
-						stringValueAppendCharCode(CHARACTERS.LINE_FEED, context);
+				function(charCode, parser) {
+					if(charCode === CHARACTER_LOWER_N) {
+						parser.skipCharacter();
+						parser.stringValueAppendCharCode(CHARACTER_LINE_FEED);
 						return "string-char";
 					}
 				},
-				function(charCode, context) {
-					if(charCode === CHARACTERS.LOWER_R) {
-						skipCharacter(context);
-						stringValueAppendCharCode(CHARACTERS.CARRIAGE_RETURN, context);
+				function(charCode, parser) {
+					if(charCode === CHARACTER_LOWER_R) {
+						parser.skipCharacter();
+						parser.stringValueAppendCharCode(CHARACTER_CARRIAGE_RETURN);
 						return "string-char";
 					}
 				},
-				function(charCode, context) {
-					if(charCode === CHARACTERS.LOWER_T) {
-						skipCharacter(context);
-						stringValueAppendCharCode(CHARACTERS.TAB, context);
+				function(charCode, parser) {
+					if(charCode === CHARACTER_LOWER_T) {
+						parser.skipCharacter();
+						parser.stringValueAppendCharCode(CHARACTER_TAB);
 						return "string-char";
 					}
 				},
-				function(charCode, context) {
-					if(charCode === CHARACTERS.LOWER_B) {
-						skipCharacter(context);
-						stringValueAppendCharCode(CHARACTERS.BACKSPACE, context);
+				function(charCode, parser) {
+					if(charCode === CHARACTER_LOWER_B) {
+						parser.skipCharacter();
+						parser.stringValueAppendCharCode(CHARACTER_BACKSPACE);
 						return "string-char";
 					}
 				},
-				function(charCode, context) {
-					if(charCode === CHARACTERS.LOWER_F) {
-						skipCharacter(context);
-						stringValueAppendCharCode(CHARACTERS.FORM_FEED, context);
+				function(charCode, parser) {
+					if(charCode === CHARACTER_LOWER_F) {
+						parser.skipCharacter();
+						parser.stringValueAppendCharCode(CHARACTER_FORM_FEED);
 						return "string-char";
 					}
 				},
-				function(charCode, context) {
-					if(charCode === CHARACTERS.LOWER_U) {
-						skipCharacter(context);
+				function(charCode, parser) {
+					if(charCode === CHARACTER_LOWER_U) {
+						parser.skipCharacter();
 						return "string-unicode-char";
 					}
 				}
@@ -341,12 +341,12 @@ module.exports = (function JSONParser() {
 		},
 		"string-unicode-char": {
 			acceptStates: [
-				function(charCode, context) {
-					var hexString = skipHexString(context);
+				function(charCode, parser) {
+					var hexString = parser.skipHexString();
 					if(hexString) {
 						var unicodeCharCode = parseInt(hexString, 16);
-						stringValueAppendCharCode(unicodeCharCode, context);
-						return isLowSurrogate(unicodeCharCode) ? "string-high-surrogate" : "string-char";
+						parser.stringValueAppendCharCode(unicodeCharCode);
+						return JSONParser.isLowSurrogate(unicodeCharCode) ? "string-high-surrogate" : "string-char";
 					}
 				}
 			],
@@ -354,12 +354,12 @@ module.exports = (function JSONParser() {
 		},
 		"string-high-surrogate": {
 			acceptStates: [
-				function(charCode, context) {
-					var hexString = skipUnicodeHexString(context);
+				function(charCode, parser) {
+					var hexString = parser.skipUnicodeHexString();
 					if(hexString) {
 						var unicodeCharCode = parseInt(hexString, 16);
-						if(isHighSurrogate(unicodeCharCode)) {
-							stringValueAppendCharCode(unicodeCharCode, context);
+						if(JSONParser.isHighSurrogate(unicodeCharCode)) {
+							parser.stringValueAppendCharCode(unicodeCharCode);
 							return "string-char";
 						}
 					}
@@ -368,15 +368,15 @@ module.exports = (function JSONParser() {
 			errorCode: "MISSING_HIGH_SURROGATE"
 		},
 		"begin-number": {
-			process: function(context) {
-				setValue("", context);
+			process: function(parser) {
+				parser.setValue("");
 				return true;
 			},
 			acceptStates: [
-				function(charCode, context) {
-					if(charCode === CHARACTERS.MINUS) {
-						skipCharacter(context);
-						stringValueAppendCharCode(charCode, context);
+				function(charCode, parser) {
+					if(charCode === CHARACTER_MINUS) {
+						parser.skipCharacter();
+						parser.stringValueAppendCharCode(charCode);
 						return "number";
 					}
 				},
@@ -388,12 +388,12 @@ module.exports = (function JSONParser() {
 		"number": {
 			acceptStates: [
 				function(charCode) {
-					if(charCode === CHARACTERS.ZERO) {
+					if(charCode === CHARACTER_ZERO) {
 						return "number-starting-0";
 					}
 				},
 				function(charCode) {
-					if(isNonZeroDigit(charCode)) {
+					if(Parser.isNonZeroDigit(charCode)) {
 						return "number-integer";
 					}
 				}
@@ -402,30 +402,30 @@ module.exports = (function JSONParser() {
 		},
 		"end-number": {
 			skipWhitespace: true,
-			process: function(context) {
-				stringValueConvertToNumber(context);
+			process: function(parser) {
+				parser.stringValueConvertToNumber();
 				return true;
 			},
 			isFinal: true
 		},
 		"number-starting-0": {
-			process: function(context) {
-				skipCharacter(context);
-				stringValueAppendCharCode(CHARACTERS.ZERO, context);
+			process: function(parser) {
+				parser.skipCharacter();
+				parser.stringValueAppendCharCode(CHARACTER_ZERO);
 				return true;
 			},
 			acceptStates: [
-				function(charCode, context) {
-					if(charCode === CHARACTERS.POINT) {
-						skipCharacter(context);
-						stringValueAppendCharCode(charCode, context);
+				function(charCode, parser) {
+					if(charCode === CHARACTER_POINT) {
+						parser.skipCharacter();
+						parser.stringValueAppendCharCode(charCode);
 						return "begin-number-fraction";
 					}
 				},
-				function(charCode, context) {
-					if(charCode === CHARACTERS.LOWER_E || charCode === CHARACTERS.UPPER_E) {
-						skipCharacter(context);
-						stringValueAppendCharCode(charCode, context);
+				function(charCode, parser) {
+					if(charCode === CHARACTER_LOWER_E || charCode === CHARACTER_UPPER_E) {
+						parser.skipCharacter();
+						parser.stringValueAppendCharCode(charCode);
 						return "begin-number-exponent";
 					}
 				},
@@ -436,24 +436,24 @@ module.exports = (function JSONParser() {
 		},
 		"number-integer": {
 			acceptStates: [
-				function(charCode, context) {
-					if(isDigit(charCode)) {
-						skipCharacter(context);
-						stringValueAppendCharCode(charCode, context);
+				function(charCode, parser) {
+					if(Parser.isDigit(charCode)) {
+						parser.skipCharacter();
+						parser.stringValueAppendCharCode(charCode);
 						return "number-integer";
 					}
 				},
-				function(charCode, context) {
-					if(charCode === CHARACTERS.POINT) {
-						skipCharacter(context);
-						stringValueAppendCharCode(charCode, context);
+				function(charCode, parser) {
+					if(charCode === CHARACTER_POINT) {
+						parser.skipCharacter();
+						parser.stringValueAppendCharCode(charCode);
 						return "begin-number-fraction";
 					}
 				},
-				function(charCode, context) {
-					if(charCode === CHARACTERS.LOWER_E || charCode === CHARACTERS.UPPER_E) {
-						skipCharacter(context);
-						stringValueAppendCharCode(charCode, context);
+				function(charCode, parser) {
+					if(charCode === CHARACTER_LOWER_E || charCode === CHARACTER_UPPER_E) {
+						parser.skipCharacter();
+						parser.stringValueAppendCharCode(charCode);
 						return "begin-number-exponent";
 					}
 				},
@@ -464,10 +464,10 @@ module.exports = (function JSONParser() {
 		},
 		"begin-number-fraction": {
 			acceptStates: [
-				function(charCode, context) {
-					if(isDigit(charCode)) {
-						skipCharacter(context);
-						stringValueAppendCharCode(charCode, context);
+				function(charCode, parser) {
+					if(Parser.isDigit(charCode)) {
+						parser.skipCharacter();
+						parser.stringValueAppendCharCode(charCode);
 						return "number-fraction";
 					}
 				}
@@ -476,17 +476,17 @@ module.exports = (function JSONParser() {
 		},
 		"number-fraction": {
 			acceptStates: [
-				function(charCode, context) {
-					if(isDigit(charCode)) {
-						skipCharacter(context);
-						stringValueAppendCharCode(charCode, context);
+				function(charCode, parser) {
+					if(Parser.isDigit(charCode)) {
+						parser.skipCharacter();
+						parser.stringValueAppendCharCode(charCode);
 						return "number-fraction";
 					}
 				},
-				function(charCode, context) {
-					if(charCode === CHARACTERS.LOWER_E || charCode === CHARACTERS.UPPER_E) {
-						skipCharacter(context);
-						stringValueAppendCharCode(charCode, context);
+				function(charCode, parser) {
+					if(charCode === CHARACTER_LOWER_E || charCode === CHARACTER_UPPER_E) {
+						parser.skipCharacter();
+						parser.stringValueAppendCharCode(charCode);
 						return "begin-number-exponent";
 					}
 				},
@@ -497,22 +497,22 @@ module.exports = (function JSONParser() {
 		},
 		"begin-number-exponent": {
 			acceptStates: [
-				function(charCode, context) {
-					if(charCode === CHARACTERS.MINUS) {
-						skipCharacter(context);
-						stringValueAppendCharCode(charCode, context);
+				function(charCode, parser) {
+					if(charCode === CHARACTER_MINUS) {
+						parser.skipCharacter();
+						parser.stringValueAppendCharCode(charCode);
 						return "begin-number-exponent-digits";
 					}
 				},
-				function(charCode, context) {
-					if(charCode === CHARACTERS.PLUS) {
-						skipCharacter(context);
-						stringValueAppendCharCode(charCode, context);
+				function(charCode, parser) {
+					if(charCode === CHARACTER_PLUS) {
+						parser.skipCharacter();
+						parser.stringValueAppendCharCode(charCode);
 						return "begin-number-exponent-digits";
 					}
 				},
 				function(charCode) {
-					if(isDigit(charCode)) {
+					if(Parser.isDigit(charCode)) {
 						return "number-exponent-digits";
 					}
 				}
@@ -521,10 +521,10 @@ module.exports = (function JSONParser() {
 		},
 		"begin-number-exponent-digits": {
 			acceptStates: [
-				function(charCode, context) {
-					if(isDigit(charCode)) {
-						skipCharacter(context);
-						stringValueAppendCharCode(charCode, context);
+				function(charCode, parser) {
+					if(Parser.isDigit(charCode)) {
+						parser.skipCharacter();
+						parser.stringValueAppendCharCode(charCode);
 						return "number-exponent-digits";
 					}
 				}
@@ -533,10 +533,10 @@ module.exports = (function JSONParser() {
 		},
 		"number-exponent-digits": {
 			acceptStates: [
-				function(charCode, context) {
-					if(isDigit(charCode)) {
-						skipCharacter(context);
-						stringValueAppendCharCode(charCode, context);
+				function(charCode, parser) {
+					if(Parser.isDigit(charCode)) {
+						parser.skipCharacter();
+						parser.stringValueAppendCharCode(charCode);
 						return "number-exponent-digits";
 					}
 				},
@@ -551,149 +551,193 @@ module.exports = (function JSONParser() {
 		}
 	};
 
-	function isDigit(charCode) {
-		return charCode >= CHARACTERS.ZERO && charCode <= CHARACTERS.NINE;
-	}
-	function isNonZeroDigit(charCode) {
-		return charCode >= CHARACTERS.ONE && charCode <= CHARACTERS.NINE;
-	}
-	function isHexDigit(charCode) {
-		return isDigit(charCode) ||
-			(charCode >= CHARACTERS.LOWER_A && charCode <= CHARACTERS.LOWER_F) ||
-			(charCode >= CHARACTERS.UPPER_A && charCode <= CHARACTERS.UPPER_F)
-		;
-	}
-	function isWhitespace(charCode) {
-		return	charCode === CHARACTERS.SPACE ||
-			charCode === CHARACTERS.LINE_FEED ||
-			charCode === CHARACTERS.CARRIAGE_RETURN ||
-			charCode === CHARACTERS.TAB
-		;
-	}
-	function isLowSurrogate(charCode) {
-		return charCode >= 0xd800 && charCode <= 0xdbff;
-	}
-	function isHighSurrogate(charCode) {
-		return charCode >= 0xdc00 && charCode <= 0xdfff;
-	}
-	function newContext(string, index) {
-		return {
-			valueStack: [],
-			string: string,
-			index: index || 0,
-			length: string.length
-		};
-	}
-	function setValue(value, context) {
-		var valueStack = context.valueStack;
-		valueStack[valueStack.length - 1] = value;
-	}
-	function stringValueAppendCharCode(charCode, context) {
-		var valueStack = context.valueStack;
-		valueStack[valueStack.length - 1] += String.fromCharCode(charCode);
-	}
-	function stringValueConvertToNumber(context) {
-		var valueStack = context.valueStack;
-		valueStack[valueStack.length - 1] = parseFloat(valueStack[valueStack.length - 1]);
-	}
-	function arrayValuePush(value, context) {
-		var valueStack = context.valueStack;
-		valueStack[valueStack.length - 1].push(value);
-	}
-	function objectValueAddMember(name, context) {
-		var valueStack = context.valueStack;
-		valueStack[valueStack.length - 1][name] = undefined;
-	}
-	function objectValueAssignMemberValue(value, context) {
-		var valueStack = context.valueStack;
-		var objectValue = valueStack[valueStack.length - 1];
+	// Parser class
+	function Parser(states) {
 
-		// Iterate over all members finding the unassigned one (should be last in order of Object.keys())
-		Object.keys(objectValue).reverse().some(function(name) {
-			/* istanbul ignore next */
-			if(objectValue[name] === undefined) {
-				objectValue[name] = value;
-				return true;
-			}
-			/* istanbul ignore next */
-			return false;
-		});
+		// Set instance variables
+		this.input = {		// String input (incl. position and length)
+			string: "",
+			index: 0,
+			length: 0
+		};
+		this.states = states;	// All possible states
+		this.valueStack = [];	// Assuming nested constructions are possible
 	}
-	function getCharCode(context) {
-		return context.string.charCodeAt(context.index);
-	}
-	function skipCharacter(context) {
-		context.index++;
-	}
-	function skipString(string, context) {
+
+	// Class methods (convenience)
+	Parser.isDigit = function(charCode) {
+		return charCode >= CHARACTER_ZERO && charCode <= CHARACTER_NINE;
+	};
+	Parser.isNonZeroDigit = function(charCode) {
+		return charCode >= CHARACTER_ONE && charCode <= CHARACTER_NINE;
+	};
+	Parser.isHexDigit = function(charCode) {
+		return Parser.isDigit(charCode) ||
+			(charCode >= CHARACTER_LOWER_A && charCode <= CHARACTER_LOWER_F) ||
+			(charCode >= CHARACTER_UPPER_A && charCode <= CHARACTER_UPPER_F)
+		;
+	};
+	Parser.isWhitespace = function(charCode) {
+		return	charCode === CHARACTER_SPACE ||
+			charCode === CHARACTER_LINE_FEED ||
+			charCode === CHARACTER_CARRIAGE_RETURN ||
+			charCode === CHARACTER_TAB
+		;
+	};
+
+	// Instance methods (input handling)
+	Parser.prototype.getCharCode = function() {
+		var input = this.input;
+		return input.string.charCodeAt(input.index);
+	};
+	Parser.prototype.skipCharacter = function() {
+		this.input.index++;
+	};
+	Parser.prototype.skipString = function(string) {
 		var length = string.length;
-		if(context.string.slice(context.index, context.index + length) === string) {
-			context.index += length;
+		var input = this.input;
+		if(input.string.slice(input.index, input.index + length) === string) {
+			input.index += length;
 			return true;
 		}
 		return false;
-	}
-	function skipHexString(context) {
-		var hexString = context.string.slice(context.index, context.index + HEX_STRING_LENGTH);
-		for(var i = 0; i < HEX_STRING_LENGTH; i++) {
-			if(!isHexDigit(hexString.charCodeAt(i))) {
-				return "";
-			}
-			context.index++;
+	};
+	Parser.prototype.skipWhitespace = function() {
+		var input = this.input;
+		while(input.index < input.length && Parser.isWhitespace(this.getCharCode())) {
+			input.index++;
 		}
-		return hexString;
-	}
-	function skipUnicodeHexString(context) {
-		if(context.string.charCodeAt(context.index) === CHARACTERS.ESCAPE) {
-			context.index++;
-			if(context.string.charCodeAt(context.index) === CHARACTERS.LOWER_U) {
-				context.index++;
-				return skipHexString(context);
-			}
+	};
+
+	// Instance methods (getting/setting current value)
+	Parser.prototype.getValue = function() {
+		var valueStack = this.valueStack;
+		return valueStack[valueStack.length - 1];
+	};
+	Parser.prototype.setValue = function(value) {
+		var valueStack = this.valueStack;
+		valueStack[valueStack.length - 1] = value;
+	};
+
+	// Instance methods (parsing)
+	Parser.prototype.parse = function(string, from) {
+
+		// Update input (if present)
+		if(arguments.length > 0) {
+			this.input.string = string;
+			this.input.from = from || 0;
+			this.input.length = string.length;
 		}
-		return "";
-	}
-	function skipWhitespace(context) {
-		while(context.index < context.length && isWhitespace(getCharCode(context))) {
-			context.index++;
-		}
-	}
-	function parseJSON(context) {
-		var state = states["start"];
-		context.valueStack.push(undefined);	// Add value (still undefined)
+
+		// Start with start state and 'empty' value
+		var state = this.states["start"];
+		this.valueStack.push(undefined);	// Add value (still undefined)
 
 		// Iterate until a final state is reached
 		while(!state.isFinal) {
 
 			// Find first acceptable next state
 			var nextStateName = null;
+			var charCode = this.getCharCode(); 
 			state.acceptStates.some(function(acceptState) {
-				nextStateName = acceptState(getCharCode(context), context);
-				return nextStateName !== undefined;
-			});
+				nextStateName = acceptState(charCode, this);
+				return !!nextStateName;
+			}, this);
 
 			// If found, go to next state and perform state processing
 			if(nextStateName) {
-				state = states[nextStateName];
+				state = this.states[nextStateName];
 				if(state.skipWhitespace) {
-					skipWhitespace(context);
+					this.skipWhitespace();
 				}
 				if(state.process) {
-					var result = state.process(context);
+					var result = state.process(this);
 					if(result !== true) {
-						return { value: undefined, index: context.index, errorCode: result };
+						return { value: undefined, index: this.input.index, errorCode: result };
 					}
 				}
 			} else {
-				return { value: undefined, index: context.index, errorCode: state.errorCode };
+				return { value: undefined, index: this.input.index, errorCode: state.errorCode };
 			}
 		}
 
-		var value = context.valueStack.pop();
-		return { value: value, index: context.index };
+		// Answer current value as result
+		var value = this.valueStack.pop();
+		return { value: value, index: this.input.index };
+	};
+
+	// JSONParser class
+	function JSONParser() {
+		Parser.call(this, JSON_STATES);
 	}
+	JSONParser.prototype = Object.create(Parser.prototype);
+	JSONParser.prototype.constructor = JSONParser;
+
+	// Class methods
+	JSONParser.isLowSurrogate = function(charCode) {
+		return charCode >= 0xd800 && charCode <= 0xdbff;
+	};
+	JSONParser.isHighSurrogate = function(charCode) {
+		return charCode >= 0xdc00 && charCode <= 0xdfff;
+	};
+
+	// Instance methods (input handling)
+	JSONParser.prototype.skipHexString = function() {
+		var input = this.input;
+		var hexString = input.string.slice(input.index, input.index + HEX_STRING_LENGTH);
+		for(var i = 0; i < HEX_STRING_LENGTH; i++) {
+			if(!Parser.isHexDigit(hexString.charCodeAt(i))) {
+				return "";
+			}
+			input.index++;
+		}
+		return hexString;
+	};
+	JSONParser.prototype.skipUnicodeHexString = function() {
+		var input = this.input;
+		if(input.string.charCodeAt(input.index) === CHARACTER_JSON_STRING_ESCAPE) {
+			input.index++;
+			if(input.string.charCodeAt(input.index) === CHARACTER_LOWER_U) {
+				input.index++;
+				return this.skipHexString();
+			}
+		}
+		return "";
+	};
+
+	// Instance methods (getting/setting current value)
+	JSONParser.prototype.stringValueAppendCharCode = function(charCode) {
+		this.setValue(this.getValue() + String.fromCharCode(charCode));
+	};
+	JSONParser.prototype.stringValueConvertToNumber = function() {
+		this.setValue(parseFloat(this.getValue()));
+	};
+	JSONParser.prototype.arrayValuePush = function(value) {
+		this.getValue().push(value);
+	};
+	JSONParser.prototype.objectValueAddMember = function(name) {
+		this.getValue()[name] = undefined;
+	};
+	JSONParser.prototype.objectValueAssignMemberValue = function(value) {
+		var objectValue = this.getValue();
+
+		// Iterate over all members finding the unassigned one (should be last in order of Object.keys())
+		var self = this;
+		Object.keys(objectValue).reverse().some(function(name) {
+			/* istanbul ignore next */
+			if(objectValue[name] === undefined) {
+				objectValue[name] = value;
+				self.setValue(objectValue);
+				return true;
+			}
+			/* istanbul ignore next */
+			return false;
+		});
+	};
+
+	// Convenience method
 	function parseNextJSONValue(string, from) {
-		return parseJSON(newContext(string, from));
+		return (new JSONParser()).parse(string, from);
 	}
 
 	return parseNextJSONValue;
