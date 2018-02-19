@@ -1,6 +1,6 @@
 {
   "name": "parse-next-json-value",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Parse next JSON value from string.",
   "keywords": [
     "JSON",
@@ -23,6 +23,7 @@
     "test": "nyc tape test.js && eslint index.js test.js"
   },
   "dependencies": {
+    "state-based-json-parser": "^1"
   },
   "devDependencies": {
     "eslint": "3",
