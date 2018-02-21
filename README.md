@@ -51,7 +51,7 @@ In case of an invalid JSON value, the following structure is the result:
 	// The error code will be one of:
 	//     "MISSING_VALUE"              If no valid value is present (partial parsing might have taken place, check {index} for location of parse failure).
 	//     "MISSING_MEMBER"
-	//     "INVALID_MEMBER_NAME";
+	//     "INVALID_MEMBER_NAME"
 	//     "MISSING_COLON"
 	//     "INVALID_OBJECT"
 	//     "INVALID_ARRAY"
