@@ -7,19 +7,24 @@ as is possible.
 ```Javascript
 	var parseNextJSONValue = require("parse-next-json-value");
 
-	// Parse a string containing a number and a literal
-	// JSON.parse() throws an error on this string
-	var parseResult = parseNextJSONValue("12.34, true");
-	console.log(parseResult);	// { value: 12.34, index: 5 }
+        // Parse a string containing a number and a literal
+        // JSON.parse() throws an error on this string
+        var inputString = "12.34, true";
+        var parseResult = parseNextJSONValue(inputString);
+        console.log(parseResult);       // { value: 12.34, index: 5 }
 
-	// Parse a string containing an array with a number and a literal
-	parseResult = parseNextJSONValue("[ 12.34, true ]");
-	console.log(parseResult);	// { value: [ 12.34, true ], index: 15 }
+        // Parse remaining string (skipping "," by adding 1 to the index)
+        parseResult = parseNextJSONValue(inputString, parseResult.index + 1);
+        console.log(parseResult);       // { value: true, index: 11 }
+
+        // Parse a string containing an array with a number and a literal
+        parseResult = parseNextJSONValue("[ 12.34, true ]");
+        console.log(parseResult);       // { value: [ 12.34, true ], index: 15 }
 ```
 
 Check the resulting field `index` to see which part was parsed correctly.
 
-The `parseNextJSONValue` function can be called with an additional parameter `from` to specify from which position the parsing should start. This can be useful for repeatedly parsing the next JSON value in a (comma separated) list of JSON values without having to slice the string to be parsed.
+The field `index` can also be used to continu parsing as shown in the above example.  The `parseNextJSONValue()` function can therefore be called with an additional parameter `from` to specify from which position the parsing should start. This can be useful for repeatedly parsing the next JSON value in a (comma separated) list of JSON values without having to slice the string to be parsed.
 
 The parser uses a state machine to keep track of the parsing process. No regular expressions or calls to `eval` are used to parse the string.
 
